@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# filename: step7_controllable_all_planets_with_help.py
+# Author: Shao Zhang and Phil Saltzman
 
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import TextNode, LineSegs, NodePath, Vec3, LPoint3
@@ -9,25 +11,11 @@ class World(ShowBase):
         self.disableMouse()
 
         # Set initial camera position and orientation
-        '''
-Heading (H):
-Rotates the camera around the Z-axis (like turning your head left/right).
-0 degrees means the camera looks down the positive Y-axis.
-Pitch (P):
-Rotates the camera around the X-axis (like nodding your head up/down).
-0 degrees means level.
-Negative values tilt downward; positive values tilt upward.
-Roll (R):
-Rotates the camera around the Y-axis (like tilting your head sideways).
-0 degrees means no sideways tilt.
-        '''
-        # camera.setPos(40, 0, 10)
-        # camera.setHpr(90, 0, 0)
         camera.setPos(20, 0, 0)
-        camera.setHpr(90, 0, 0)      # 0, 0, 0, looks down the y axis
+        camera.setHpr(90, 0, 0)  # 0, 0, 0, looks down the y axis
 
         # Initialize speed, velocities, and rotational inertia
-        self.speed = 1  # Base movement speed
+        self.speed = 0  # Base movement speed
         self.velocity = Vec3(0, 0, 0)  # Linear velocity
         self.yaw_velocity = 0  # Yaw rotation velocity (left/right)
         self.pitch_velocity = 0  # Pitch rotation velocity (up/down)
@@ -60,6 +48,7 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
         self.help_text_node = None
         self.help_visible = False
         self.create_help_text()  # Prepare the help text
+        self.draw_axes()
 
     def update_key_map(self, key, value):
         """Update the state of the key map."""
@@ -108,9 +97,9 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
 
         # Adjust speed based on user input
         if self.key_map["."]:
-            self.speed += 0.1  # Accelerate forward
+            self.speed += 0.1  # forward
         if self.key_map[","]:
-            self.speed -= 0.1  # Decelerate (can go backward)
+            self.speed = self.speed - 0.1  # backward
 
         # Calculate velocity in the direction the camera is pointing
         forward = camera.getQuat(render).getForward()  # Forward direction based on camera's quaternion
@@ -119,47 +108,6 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
         # Update camera position based on velocity
         movement = velocity * dt
         camera.setPos(camera.getPos() + movement)
-
-        self.draw_axes()
-
-        return task.cont
-
-        """Update camera position and rotation based on user input."""
-        dt = max(globalClock.getDt(), 0.001)  # Clamp dt to avoid tiny values
-
-        # Adjust rotational velocities based on key inputs
-        if self.key_map["arrow_left"]:
-            self.yaw_velocity += 10 * dt  # Turn left
-        if self.key_map["arrow_right"]:
-            self.yaw_velocity -= 10 * dt  # Turn right
-        if self.key_map["arrow_up"]:
-            self.pitch_velocity += 10 * dt  # Look up
-        if self.key_map["arrow_down"]:
-            self.pitch_velocity -= 10 * dt  # Look down
-
-        # Apply rotational inertia (gradual slowdown)
-        self.yaw_velocity *= self.rotation_decay
-        self.pitch_velocity *= self.rotation_decay
-
-        # Apply rotations
-        camera.setH(camera.getH() + self.yaw_velocity)
-        camera.setP(camera.getP() + self.pitch_velocity)
-
-        # Adjust velocity based on camera direction and acceleration
-        if self.key_map["."]:
-            forward = camera.getRelativeVector(render, Vec3(0, 1, 0))  # Camera's forward direction
-            self.velocity += forward * 0.1  # Accelerate forward
-        if self.key_map[","]:
-            forward = camera.getRelativeVector(render, Vec3(0, 1, 0))  # Camera's forward direction
-            self.velocity -= forward * 0.1  # Decelerate or move backward
-
-        # Apply velocity to camera position
-        movement = self.velocity * dt
-        camera.setPos(camera.getPos() + movement)
-
-        # Debugging output
-        print(f"dt: {dt:.6f}, Velocity: {self.velocity}")
-        print(f"Camera Position: {camera.getPos()}, HPR: {camera.getHpr()}\n")
 
         return task.cont
 
@@ -174,18 +122,17 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
     def create_help_text(self):
         """Create the on-screen help text."""
         help_text = (
-            "[Arrow Keys]: Rotate/Move\n"
-            "[.]: Accelerate forward\n"
-            "[,]: Decelerate/Move backward\n"
-            "[?]: Toggle this help\n"
+            "[Arrow Keys]: Navigation.\n"
+            "[.]: Go forward.\n"
+            "[,]: Go backward.\n"
+            "[?]: Toggle this help screen.\n\n"
         )
         text_node = TextNode("help_text")
         text_node.setText(help_text)
-        text_node.setAlign(TextNode.ALeft)
-        self.help_text_node = aspect2d.attachNewNode(text_node)
-        self.help_text_node.setScale(0.05)
-        self.help_text_node.setPos(-1.2, 0, 0.8)  # Adjust position on screen
-        self.help_text_node.hide()  # Start with help text hidden
+        text_node.setAlign(TextNode.ALeft)  # Left-aligned text
+        self.help_text_node = base.a2dTopLeft.attachNewNode(text_node)  # Parent to top-left corner
+        self.help_text_node.setScale(0.05)  # Adjust text size
+        self.help_text_node.setPos(0.05, 0, -0.05)  # Slight offset from the top-left
 
     def init_sky(self):
         """Render the sky."""
@@ -195,8 +142,9 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
         sky.reparentTo(render)
 
     def create_planets(self):
-        """Render the planets in the solar system."""
+        """Render the planets and their moons in the solar system."""
         planet_data = [
+            # ("Name", Orbit Distance (in AU scaled), Size (relative to Sun), Texture Filename)
             ("Sun", 0, 2, "sun_1k_tex.jpg"),
             ("Mercury", 0.38, 0.385, "mercury_1k_tex.jpg"),
             ("Venus", 0.72, 0.923, "venus_1k_tex.jpg"),
@@ -208,13 +156,44 @@ Rotates the camera around the Y-axis (like tilting your head sideways).
             ("Neptune", 30.1, 3.9, "neptune_1k_tex.jpg"),
         ]
 
+        moon_data = {
+            "Earth": [("Moon", 0.1, 0.1, "moon_1k_tex.jpg")],  # Earth's Moon
+            "Mars": [("Phobos", 0.2, 0.05, "phobos_1k_tex.jpg"),  # Phobos
+                    ("Deimos", 0.3, 0.04, "deimos_1k_tex.jpg")],  # Deimos
+            "Jupiter": [("Io", 0.5, 0.2, "generic_moon_1k_tex.jpg"),        # Io
+                        ("Europa", 0.6, 0.15, "generic_moon_1k_tex.jpg"),
+                        ("Ganymede", 0.7, 0.25, "generic_moon_1k_tex.jpg"),
+                        ("Callisto", 0.8, 0.22, "generic_moon_1k_tex.jpg")],
+            "Saturn": [("Titan", 0.6, 0.2, "generic_moon_1k_tex.jpg")],  # Titan
+        }
+
         for name, orbit, size, texture in planet_data:
+            # Create a root node for the planet to allow for orbiting behavior
             root = render.attachNewNode(f'orbit_root_{name}')
+            
+            # Load the 3D model for the planet and apply its texture
             model = loader.loadModel("models/planet_sphere")
             model.setTexture(loader.loadTexture(f"models/{texture}"), 1)
+            
+            # Scale the planet's size (arbitrary scaling factor of 0.6 for the demo)
             model.setScale(size * 0.6)
+            
+            # Position the planet at its orbit distance (scaled AU for visual clarity)
             model.setPos(orbit * 10, 0, 0)
+            
+            # Attach the planet model to its orbit root
             model.reparentTo(root)
+
+            # Add moons if this planet has any
+            if name in moon_data:
+                for moon_name, moon_orbit, moon_size, moon_texture in moon_data[name]:
+                    moon_root = root.attachNewNode(f'orbit_root_{moon_name}')
+                    moon_model = loader.loadModel("models/planet_sphere")
+                    moon_model.setTexture(loader.loadTexture(f"models/{moon_texture}"), 1)
+                    moon_model.setScale(moon_size * 0.6)
+                    moon_model.setPos(moon_orbit * 10, 0, 0)
+                    moon_model.reparentTo(moon_root)
+
 
 w = World()
 w.run()
