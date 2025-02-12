@@ -146,55 +146,58 @@ class World(ShowBase):
     def create_planets(self):
         """Render the planets and their moons in the solar system, with proper orbital motion."""
         planet_data = [
-            # ("Name", Orbit Distance (in AU scaled), Size (relative to Sun), Texture Filename)
-            ("Sun", 0, 2, "sun_1k_tex.jpg"),
-            # ("Mercury", 0.38, 0.385, "mercury_1k_tex.jpg"),
-            # ("Venus", 0.72, 0.923, "venus_1k_tex.jpg"),
+            # "Name", Orbit Distance (in AU scaled), Size (relative to Sun), Texture Filename)
+            #("Sun", 0, 2, "sun_1k_tex.jpg"),
+            #("Mercury", 0.38, 0.385, "mercury_1k_tex.jpg"),
+            #("Venus", 0.72, 0.923, "venus_1k_tex.jpg"),
             ("Earth", 1.0, 1.0, "earth_1k_tex.jpg"),
-            # ("Mars", 1.52, 0.515, "mars_1k_tex.jpg"),
-            # ("Jupiter", 5.2, 11.2, "jupiter_1k_tex.jpg"),
+            #("Mars", 1.52, 0.515, "mars_1k_tex.jpg"),
+            #("Jupiter", 5.2, 11.2, "jupiter_1k_tex.jpg"),
             #("Saturn", 9.5, 9.5, "saturn_1k_tex.jpg"),
             #("Uranus", 19.8, 4.0, "uranus_1k_tex.jpg"),
             #("Neptune", 30.1, 3.9, "neptune_1k_tex.jpg"),
-        ]
+       ]
 
         moon_data = {
-            "Earth": [("Moon", 0.1, 0.1, "moon_1k_tex.jpg")],
-            # "Mars": [("Phobos", 0.2, 0.05, "phobos_1k_tex.jpg"),
-            #         ("Deimos", 0.3, 0.04, "deimos_1k_tex.jpg")],
-            # "Jupiter": [("Io", 0.5, 0.2, "generic_moon_1k_tex.jpg"),
-            # #           ("Europa", 0.6, 0.15, "generic_moon_1k_tex.jpg"),
-            #            ("Ganymede", 0.7, 0.25, "generic_moon_1k_tex.jpg"),
-            #            ("Callisto", 0.8, 0.22, "generic_moon_1k_tex.jpg")],
+            "Earth": [("Moon", 0.2, 0.1, "moon_1k_tex.jpg")],
+            #"Mars": [("Phobos", 0.2, 0.05, "phobos_1k_tex.jpg"),
+            #    ("Deimos", 0.3, 0.04, "deimos_1k_tex.jpg")],
+            #"Jupiter": [("Io", 0.5, 0.2, "generic_moon_1k_tex.jpg"),
+            # #   ("Europa", 0.6, 0.15, "generic_moon_1k_tex.jpg"),
+            #   ("Ganymede", 0.7, 0.25, "generic_moon_1k_tex.jpg"),
+            #    ("Callisto", 0.8, 0.22, "generic_moon_1k_tex.jpg")],
             #"Saturn": [("Titan", 0.6, 0.2, "generic_moon_1k_tex.jpg")],
         }
 
         for name, orbit, size, texture in planet_data:
+            print(f"Creating planet: {name}")
             root = render.attachNewNode(f'orbit_root_{name}')
             model = loader.loadModel("models/planet_sphere")
             model.setTexture(loader.loadTexture(f"models/{texture}"), 1)
             model.setScale(size * 0.6)
             model.setPos(orbit * 10, 0, 0)
             model.reparentTo(root)
-
-            # Add orbital motion to the planet's root
-            #planet_orbit = root.hprInterval(orbit * 10, (360, 0, 0))  # Duration scales with distance
-            #planet_orbit.loop()
+            print(f"  {name} root node position: {root.getPos()}")
+            print(f"  {name} model position: {model.getPos()}")
 
             # Add moons if this planet has any
             if name in moon_data:
                 for moon_name, moon_orbit, moon_size, moon_texture in moon_data[name]:
+                    print(f"  Adding moon: {moon_name} to planet: {name}")
                     # Attach the moon's root to the planet's root
-                    moon_root = root.attachNewNode(f'orbit_root_{moon_name}')
+                    moon_root = model.attachNewNode(f'orbit_root_{moon_name}')
                     moon_model = loader.loadModel("models/planet_sphere")
                     moon_model.setTexture(loader.loadTexture(f"models/{moon_texture}"), 1)
                     moon_model.setScale(moon_size * 0.6)
                     moon_model.setPos(moon_orbit * 10, 0, 0)  # Position relative to the planet
                     moon_model.reparentTo(moon_root)
+                    print(f"    {moon_name} root node position: {moon_root.getPos()}")
+                    print(f"    {moon_name} model position: {moon_model.getPos()}")
 
                     # Add orbital motion to the moon around the planet
-                    moon_orbit_interval = moon_root.hprInterval(moon_orbit * 5, (360, 0, 0))  # Faster orbit
+                    moon_orbit_interval = moon_model.hprInterval(moon_orbit * 5, (360, 0, 0))  # Faster orbit
                     moon_orbit_interval.loop()
+
 
 w = World()
 w.run()

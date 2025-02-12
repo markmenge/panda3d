@@ -13,6 +13,8 @@ class World(ShowBase):
         # Set initial camera position and orientation
         camera.setPos(20, 0, 0)
         camera.setHpr(90, 0, 0)  # 0, 0, 0, looks down the y axis
+        camera.setPos(0, 0, 0)
+        camera.setHpr(0, 0, 0)  # 0, 0, 0, looks down the y axis
 
         # Initialize speed, velocities, and rotational inertia
         self.speed = 0  # Base movement speed
@@ -135,64 +137,57 @@ class World(ShowBase):
         self.help_text_node.setPos(0.05, 0, -0.05)  # Slight offset from the top-left
 
     def init_sky(self):
+        return
         """Render the sky."""
         sky = loader.loadModel("models/solar_sky_sphere")
         sky.setTexture(loader.loadTexture("models/stars_1k_tex.jpg"), 1)
         sky.setScale(1000)
         sky.reparentTo(render)
 
-    def create_planets(self):
-        """Render the planets and their moons in the solar system."""
+    def create_planets(self): 
+        """Render the planets and their moons in the solar system, with proper orbital motion."""
         planet_data = [
             # ("Name", Orbit Distance (in AU scaled), Size (relative to Sun), Texture Filename)
-            ("Sun", 0, 2, "sun_1k_tex.jpg"),
-            ("Mercury", 0.38, 0.385, "mercury_1k_tex.jpg"),
-            ("Venus", 0.72, 0.923, "venus_1k_tex.jpg"),
-            ("Earth", 1.0, 1.0, "earth_1k_tex.jpg"),
-            ("Mars", 1.52, 0.515, "mars_1k_tex.jpg"),
-            ("Jupiter", 5.2, 11.2, "jupiter_1k_tex.jpg"),
-            ("Saturn", 9.5, 9.5, "saturn_1k_tex.jpg"),
-            ("Uranus", 19.8, 4.0, "uranus_1k_tex.jpg"),
-            ("Neptune", 30.1, 3.9, "neptune_1k_tex.jpg"),
+            #("Sun", 0, 2, "sun_1k_tex.jpg"),
+            ("Earth", 1.0, 1, "earth_1k_tex.jpg"),
         ]
 
         moon_data = {
-            "Earth": [("Moon", 0.1, 0.1, "moon_1k_tex.jpg")],  # Earth's Moon
-            "Mars": [("Phobos", 0.2, 0.05, "phobos_1k_tex.jpg"),  # Phobos
-                    ("Deimos", 0.3, 0.04, "deimos_1k_tex.jpg")],  # Deimos
-            "Jupiter": [("Io", 0.5, 0.2, "generic_moon_1k_tex.jpg"),        # Io
-                        ("Europa", 0.6, 0.15, "generic_moon_1k_tex.jpg"),
-                        ("Ganymede", 0.7, 0.25, "generic_moon_1k_tex.jpg"),
-                        ("Callisto", 0.8, 0.22, "generic_moon_1k_tex.jpg")],
-            "Saturn": [("Titan", 0.6, 0.2, "generic_moon_1k_tex.jpg")],  # Titan
+            "Earth": [("Moon", 0.2, 0.1, "moon_1k_tex.jpg")],
         }
 
         for name, orbit, size, texture in planet_data:
-            # Create a root node for the planet to allow for orbiting behavior
+            print(f"Creating planet: {name}")
+            # Create the root node for the planet
             root = render.attachNewNode(f'orbit_root_{name}')
-            
-            # Load the 3D model for the planet and apply its texture
             model = loader.loadModel("models/planet_sphere")
             model.setTexture(loader.loadTexture(f"models/{texture}"), 1)
-            
-            # Scale the planet's size (arbitrary scaling factor of 0.6 for the demo)
             model.setScale(size * 0.6)
-            
-            # Position the planet at its orbit distance (scaled AU for visual clarity)
-            model.setPos(orbit * 10, 0, 0)
-            
-            # Attach the planet model to its orbit root
-            model.reparentTo(root)
+            model.setPos(orbit * 10, 0, 0)  # Position the planet's model relative to the origin
+            model.reparentTo(root)  # Attach the model to its root
+            print(f"  {name} root node position: {root.getPos()}")
+            print(f"  {name} model position: {model.getPos()}")
 
             # Add moons if this planet has any
             if name in moon_data:
                 for moon_name, moon_orbit, moon_size, moon_texture in moon_data[name]:
-                    moon_root = root.attachNewNode(f'orbit_root_{moon_name}')
+                    print(f"  Adding moon: {moon_name} to planet: {name}")
+                    # Create the moon's root node, positioned relative to the planet's model
+                    moon_root = model.attachNewNode(f'orbit_root_{moon_name}')
+                    moon_root.setPos(0, 0, 0)  # Center the moon's root at the planet's position
+
+                    # Create the moon model
                     moon_model = loader.loadModel("models/planet_sphere")
                     moon_model.setTexture(loader.loadTexture(f"models/{moon_texture}"), 1)
                     moon_model.setScale(moon_size * 0.6)
-                    moon_model.setPos(moon_orbit * 10, 0, 0)
+                    moon_model.setPos(moon_orbit * 10, 0, 0)  # Position relative to the moon's orbit root
                     moon_model.reparentTo(moon_root)
+                    print(f"    {moon_name} root node position: {moon_root.getPos()}")
+                    print(f"    {moon_name} model position: {moon_model.getPos()}")
+
+                    # Add orbital motion to the moon around the planet
+                    moon_orbit_interval = moon_root.hprInterval(moon_orbit * 5, (360, 0, 0))  # Faster orbit
+                    moon_orbit_interval.loop()
 
 
 w = World()
